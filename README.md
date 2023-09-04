@@ -1,6 +1,6 @@
 # HID info sender
 
-For sending device utilization stats to my [Sofle RGB keyboard]().
+For sending device utilization stats to my [QMK keymap for the Sofle RGB keyboard](https://github.com/euwbah/sofle_rgb_qmk/tree/master/keyboards/sofle/keymaps/euwbah).
 
 Works on Windows only.
 
