@@ -2,10 +2,24 @@ import time
 import hid
 import psutil
 import GPUtil
+import sys
 import clr
 clr.AddReference('./OpenHardwareMonitorLib')
 
 from OpenHardwareMonitor.Hardware import Computer
+
+LOG_FILE_PATH = './log.txt'
+
+def log(message, overwrite=False):
+    if overwrite:
+        with open(LOG_FILE_PATH, 'w') as f:
+            f.write(message + '\n')
+    else:
+        with open(LOG_FILE_PATH, 'a') as f:
+            f.write(message + '\n')
+
+log('Starting HID info forwarder for euwbah\'s Sofle RGB keymap', overwrite=True)
+log(f'Opening in pwd: {sys.path[0]}')
 
 # Set these to match OpenHardwareMonitor.Hardware.IHardware.Name
 # (Names can be printed with `print(Computer.Hardware[i].Name)`)
@@ -21,6 +35,8 @@ PRODUCT_ID = 0x0287
 USAGE_PAGE = 0xFF60
 USAGE = 0x61
 
+keyboard_not_found_displayed = False
+
 computer = Computer()
 computer.CPUEnabled = True
 computer.GPUEnabled = True
@@ -35,7 +51,9 @@ while True:
     devices = hid.enumerate(VENDOR_ID, PRODUCT_ID)
     devices = [d for d in devices if d['usage_page'] == USAGE_PAGE and d['usage'] == USAGE]
     if len(devices) == 0:
-        print("Keyboard not found")
+        if not keyboard_not_found_displayed:
+            log("Keyboard not found")
+            keyboard_not_found_displayed = True
         time.sleep(1)
         continue
     interface = hid.Device(path=devices[0]['path'])
@@ -57,6 +75,14 @@ while True:
     5: GPU0 memory utilization percentage
     6: GPU0 temperature percentage (30-100C -> 0-100%)
     7: GPU1 utilization percentage
+    10: current month (1-12)
+    11: current day of the month (1-31)
+    12: current day of the week (0-6: Monday-Sunday)
+    13: current hour (0-23)
+    14: current minute (0-59)
+    15: current second (0-59)
+
+    If any of the above values can't be retrieved, the corresponding byte will be set to 0x00.
     """
 
     data[0] = 1 # first data byte being 1 represents that the packet contains host utilization data.
@@ -85,16 +111,29 @@ while True:
         if gpu1_util is not None:
             data[7] = int(gpu1_util)
 
+    # send date & time info
 
-    # If unable to get GPU info, the data bytes default to 0.
+    current_time = time.localtime()
+    data[10] = current_time.tm_mon
+    data[11] = current_time.tm_mday
+    data[12] = current_time.tm_wday
+    data[13] = current_time.tm_hour
+    data[14] = current_time.tm_min
+    data[15] = current_time.tm_sec
 
     try:
         hid_request_packet = bytes([0x00] + data)
         interface.write(hid_request_packet)
         # print("Sent packet: " + str(hid_request_packet))
         response_packet = interface.read(32, timeout=1000)
+        keyboard_not_found_displayed = False
     except hid.HIDException as e:
-        print("Keyboard not found")
+        if not keyboard_not_found_displayed:
+            log(f"Could not send packet/keyboard not found: {e}")
+            keyboard_not_found_displayed = True
+        time.sleep(1)
+    except Exception as e:
+        log(f"Unknown error: {e}")
         time.sleep(1)
     finally:
         interface.close()

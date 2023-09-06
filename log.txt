@@ -1,0 +1,7 @@
+Starting HID info forwarder for euwbah's Sofle RGB keymap
+Opening in pwd: C:\Users\dacoo\Documents\Keyboard Things\hid-info-sender
+Could not send packet/keyboard not found: hid_read_timeout/GetOverlappedResult: (0x0000048F) The device is not connected.
+Could not send packet/keyboard not found: WriteFile: (0x0000048F) The device is not connected.
+Keyboard not found
+Could not send packet/keyboard not found: hid_read_timeout/GetOverlappedResult: (0x0000048F) The device is not connected.
+Could not send packet/keyboard not found: hid_read_timeout/GetOverlappedResult: (0x0000048F) The device is not connected.
