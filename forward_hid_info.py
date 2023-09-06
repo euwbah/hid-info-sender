@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 import hid
 import psutil
 import GPUtil
@@ -11,12 +12,11 @@ from OpenHardwareMonitor.Hardware import Computer
 LOG_FILE_PATH = './log.txt'
 
 def log(message, overwrite=False):
-    if overwrite:
-        with open(LOG_FILE_PATH, 'w') as f:
-            f.write(message + '\n')
-    else:
-        with open(LOG_FILE_PATH, 'a') as f:
-            f.write(message + '\n')
+    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
+    message = f'{timestamp} {message}\n'
+    mode = 'w' if overwrite else 'a'
+    with open(LOG_FILE_PATH, mode) as f:
+        f.write(message)
 
 log('Starting HID info forwarder for euwbah\'s Sofle RGB keymap', overwrite=True)
 log(f'Opening in pwd: {sys.path[0]}')
@@ -128,9 +128,11 @@ while True:
         response_packet = interface.read(32, timeout=1000)
         keyboard_not_found_displayed = False
     except hid.HIDException as e:
-        if not keyboard_not_found_displayed:
-            log(f"Could not send packet/keyboard not found: {e}")
+        if not keyboard_not_found_displayed and 'not connected' in str(e):
+            log(f"Keyboard not found: {e}")
             keyboard_not_found_displayed = True
+        else:
+            log(f"Could not send packet: {e}")
         time.sleep(1)
     except Exception as e:
         log(f"Unknown error: {e}")
