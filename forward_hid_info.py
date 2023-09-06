@@ -66,7 +66,7 @@ while True:
     ram_percent = psutil.virtual_memory().percent
 
     """
-    Byte format:
+    Byte format (0-indexed):
     0: 0x01 to signify that this packet contains host utilization data
     1: CPU utilization percentage
     2: CPU temperature percentage (30-100C -> 0-100%)
@@ -75,6 +75,8 @@ while True:
     5: GPU0 memory utilization percentage
     6: GPU0 temperature percentage (30-100C -> 0-100%)
     7: GPU1 utilization percentage
+    8: Unused/placeholder
+    9: Unused/placeholder
     10: current month (1-12)
     11: current day of the month (1-31)
     12: current day of the week (0-6: Monday-Sunday)
@@ -122,6 +124,8 @@ while True:
     data[15] = current_time.tm_sec
 
     try:
+        # NOTE: An extra 0x00 byte is prepended to the packet to signify to windows/HIDAPI that it is a
+        # HID request packet. This may or may not be necessary on other OSes.
         hid_request_packet = bytes([0x00] + data)
         interface.write(hid_request_packet)
         # print("Sent packet: " + str(hid_request_packet))

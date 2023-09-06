@@ -2,16 +2,16 @@
 
 For sending device utilization stats to my [QMK keymap for the Sofle RGB keyboard](https://github.com/euwbah/sofle_rgb_qmk/tree/master/keyboards/sofle/keymaps/euwbah).
 
-Works on Windows only.
+Works on Windows only. See [byte format](#byte-format) for the data format to port this to other OSes.
 
 ## Setup
 
 - Install latest Python for windows. Make sure you have the `py` command/launcher available in your terminal.
 - Install HIDAPI
-  - Download the latest compiled dll and lib from https://github.com/libusb/hidapi/releases/
+  - Download the latest compiled dll and lib from [libusb/hidapi releases](https://github.com/libusb/hidapi/releases/)
   - On Windows, you will need to 'install' the `.dll` and `.lib` by copying the appropriate dlls to `C:\Windows\System32`. On 64-bit Windows, use the ones in the x64 folder.
 - Install Open Hardware Monitor (for CPU temp)
-  - Download the latest zip from https://openhardwaremonitor.org/downloads/
+  - Download the latest zip from [openhardwaremonitor.org](https://openhardwaremonitor.org/downloads/)
   - Run the .exe once with admin rights, make sure it works.
   - Copy the `OpenHardwareMonitorLib.dll` from the install directory to the same directory as this script.
 - `pip install hid` - this python package is a wrapper for HIDAPI.
@@ -30,3 +30,28 @@ Works on Windows only.
     - Select the "Forward HID Info at startup" task, and click "Run" in the right pane.
     - Check the history tab of this task and make sure the "Action started" task category is logged.
     - If there's an error, it will show up in the "Last Run Result" column.
+
+## Byte format
+
+1. Fixed to `0x01` (identifies this custom data packet)
+2. CPU utilization percentage
+3. CPU temperature percentage (30-100C -> 0-100%)
+4. RAM utilization percentage
+5. GPU0 utilization percentage
+6. GPU0 memory utilization percentage
+7. GPU0 temperature percentage (30-100C -> 0-100%)
+8. GPU1 utilization percentage
+9. Placeholder (set to `0x00`)
+10. Placeholder (set to `0x00`)
+11. current month (1-12)
+12. current day of the month (1-31)
+13. current day of the week (0-6: Monday-Sunday)
+14. current hour (0-23)
+15. current minute (0-59)
+16. current second (0-59)
+
+Bytes 17-32 are unused. (HID reports are fixed to 32 bytes).
+
+NOTE: In this implementation, an extra `0x00` byte is prepended to the packet to signify to windows/HIDAPI that it is a HID request packet, offsetting the bytes sent to the HIDAPI call. This extra byte does not get sent to the keyboard. This may or may not be necessary on other OSes/other HIDAPI wrappers/libs.
+
+If any of the above values can't be retrieved, the corresponding byte should be set to `0x00`.
