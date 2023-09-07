@@ -31,6 +31,10 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
     - Check the history tab of this task and make sure the "Action started" task category is logged.
     - If there's an error, it will show up in the "Last Run Result" column.
 
+## Bugs
+
+- After flashing both sides of the keyboard, HIDAPI may throw the 'Device not connected' error, even if the keyboard is connected. To go around this, restart the script. In task scheduler, select the "Forward HID Info" script, click "End" then "Run".
+
 ## Byte format
 
 1. Fixed to `0x01` (identifies this custom data packet)
