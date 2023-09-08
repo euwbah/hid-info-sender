@@ -14,9 +14,10 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
   - Download the latest zip from [openhardwaremonitor.org](https://openhardwaremonitor.org/downloads/)
   - Run the .exe once with admin rights, make sure it works.
   - Copy the `OpenHardwareMonitorLib.dll` from the install directory to the same directory as this script.
-- `pip install hid` - this python package is a wrapper for HIDAPI.
-- `pip install psutil` - For CPU usage.
-- `pip install pythonnet` - For injecting the Open Hardware Monitor dll.
+- `py -m pip install hid` - this python package is a wrapper for HIDAPI.
+- `py -m pip install psutil` - For CPU usage.
+- `py -m pip install pythonnet` - For injecting the Open Hardware Monitor dll.
+- `py -m pip install monitorcontrol` - For external monitor control
 - Make this python script run as administrator at startup. The method below uses Task Scheduler which lets this python script run silently in the background.
   - Open Task Scheduler
   - Create a new task, name it something like "Forward HID Info at startup", or something memorable so that you will know to remove the scheduled task once this program is no longer needed at startup.

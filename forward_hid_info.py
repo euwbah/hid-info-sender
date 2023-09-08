@@ -3,6 +3,7 @@ from datetime import datetime
 import hid
 import psutil
 import GPUtil
+from monitorcontrol import monitorcontrol, InputSource
 import sys
 import clr
 clr.AddReference('./OpenHardwareMonitorLib')
@@ -128,8 +129,22 @@ while True:
         # HID request packet. This may or may not be necessary on other OSes.
         hid_request_packet = bytes([0x00] + data)
         interface.write(hid_request_packet)
-        # print("Sent packet: " + str(hid_request_packet))
-        response_packet = interface.read(32, timeout=1000)
+        # print("Sent packet: " + [int(b) for b in hid_request_packet])
+        response_packet = interface.read(32, timeout=250)
+        if response_packet and response_packet[0] == 0x01:
+            mon_brightness, mon_contrast = response_packet[1], response_packet[2]
+
+            monitors = monitorcontrol.get_monitors()
+            ext_mon = None
+            for m in monitors:
+                with m:
+                    if m.get_input_source() != InputSource.OFF:
+                        ext_mon = m
+                        break
+            if ext_mon is not None:
+                with ext_mon:
+                    ext_mon.set_luminance(mon_brightness)
+                    ext_mon.set_contrast(mon_contrast)
         keyboard_not_found_displayed = False
     except hid.HIDException as e:
         if not keyboard_not_found_displayed and 'not connected' in str(e):
@@ -144,4 +159,4 @@ while True:
     finally:
         interface.close()
 
-    time.sleep(0.5)
+    time.sleep(0.1)
