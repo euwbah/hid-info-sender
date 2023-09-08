@@ -41,6 +41,8 @@ You will need to use a [ridiculous hack](https://stackoverflow.com/a/67300159/42
   - Restart computer to check that the task runs upon log in.
 - After testing, "Disable all tasks history".
 
+**Note**: To stop/restart the Python script, open Task Manager, search for 'py.exe', right click and select 'End task'. Ending the task from Task Scheduler doesn't work.
+
 If there's an easier way to do this, please let me know. Things I have tried and didn't work:
 
 - The "Run even when user is not logged on" trick to run a powershell script in the background does not allow access to external monitor brightness control (security reasons)

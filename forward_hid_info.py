@@ -6,6 +6,7 @@ import GPUtil
 from monitorcontrol import monitorcontrol, InputSource
 import sys
 import os
+import threading
 import clr
 clr.AddReference('./OpenHardwareMonitorLib')
 
@@ -41,7 +42,7 @@ PRODUCT_ID = 0x0287
 USAGE_PAGE = 0xFF60
 USAGE = 0x61
 
-keyboard_not_found_displayed = False
+keyboard_not_found_logged = False
 
 computer = Computer()
 computer.CPUEnabled = True
@@ -53,16 +54,57 @@ cpu_hardware = cpu_hardware[0] if len(cpu_hardware) > 0 else None
 amd_gpu_hardware = [h for h in computer.Hardware if AMD_GPU_SEARCH in h.Name]
 amd_gpu_hardware = amd_gpu_hardware[0] if len(amd_gpu_hardware) > 0 else None
 
-while True:
+keyboard_device = None
+
+def find_keyboard_device():
+    global keyboard_device
+    if keyboard_device is not None:
+        try:
+            keyboard_device.close()
+        except Exception as e:
+            log(f"Error closing keyboard device: [{type(e).__name__}] {e}")
     devices = hid.enumerate(VENDOR_ID, PRODUCT_ID)
     devices = [d for d in devices if d['usage_page'] == USAGE_PAGE and d['usage'] == USAGE]
     if len(devices) == 0:
-        if not keyboard_not_found_displayed:
-            log("Keyboard not found")
-            keyboard_not_found_displayed = True
-        time.sleep(1)
+        return False
+    keyboard_device = hid.Device(path=devices[0]['path'])
+    keyboard_device.nonblocking = False
+    return True
+
+# For reading in a separate thread
+def handle_hid_read():
+    while True:
+        if keyboard_device is None:
+            time.sleep(2)
+            continue
+        try:
+            response_packet = keyboard_device.read(32, timeout=None) # blocks until packet is received
+            if response_packet and response_packet[0] == 0x01:
+                mon_brightness, mon_contrast = response_packet[1], response_packet[2]
+
+                monitors = monitorcontrol.get_monitors()
+                ext_mon = None
+                for m in monitors:
+                    with m:
+                        if m.get_input_source() != InputSource.OFF:
+                            ext_mon = m
+                            break
+                if ext_mon is not None:
+                    with ext_mon:
+                        ext_mon.set_luminance(mon_brightness)
+                        ext_mon.set_contrast(mon_contrast)
+        except Exception as e:
+            log(f"Error reading from keyboard device: [{type(e).__name__}] {e}")
+
+incoming_handler = threading.Thread(target=handle_hid_read)
+incoming_handler.daemon = True
+incoming_handler.start()
+
+while True:
+    if keyboard_device is None:
+        find_keyboard_device()
+        time.sleep(2)
         continue
-    interface = hid.Device(path=devices[0]['path'])
 
     # 32 bytes report length
     data = [0] * 32
@@ -133,35 +175,25 @@ while True:
         # NOTE: An extra 0x00 byte is prepended to the packet to signify to windows/HIDAPI that it is a
         # HID request packet. This may or may not be necessary on other OSes.
         hid_request_packet = bytes([0x00] + data)
-        interface.write(hid_request_packet)
-        # print("Sent packet: " + [int(b) for b in hid_request_packet])
-        response_packet = interface.read(32, timeout=250)
-        if response_packet and response_packet[0] == 0x01:
-            mon_brightness, mon_contrast = response_packet[1], response_packet[2]
+        keyboard_device.write(hid_request_packet)
+        # print("Sent packet: " + str(hid_request_packet))
 
-            monitors = monitorcontrol.get_monitors()
-            ext_mon = None
-            for m in monitors:
-                with m:
-                    if m.get_input_source() != InputSource.OFF:
-                        ext_mon = m
-                        break
-            if ext_mon is not None:
-                with ext_mon:
-                    ext_mon.set_luminance(mon_brightness)
-                    ext_mon.set_contrast(mon_contrast)
-        keyboard_not_found_displayed = False
+        keyboard_not_found_logged = False
     except hid.HIDException as e:
-        if not keyboard_not_found_displayed and 'not connected' in str(e):
-            log(f"Keyboard not found: {e}")
-            keyboard_not_found_displayed = True
+        if 'not connected' in str(e):
+            try:
+                keyboard_device.close()
+            except Exception as e:
+                log(f"Error closing keyboard device: [{type(e).__name__}] {e}")
+            keyboard_device = None
+            if not keyboard_not_found_logged:
+                log(f"Keyboard not found: {e}")
+                keyboard_not_found_logged = True
         else:
-            log(f"Could not send packet: {e}")
+            log(f"Could not send packet: [{type(e).__name__}] {e}")
         time.sleep(1)
     except Exception as e:
-        log(f"Error: {type(e).__name__} {e}")
+        log(f"Error: [{type(e).__name__}] {e}")
         time.sleep(1)
-    finally:
-        interface.close()
 
-    time.sleep(0.1)
+    time.sleep(1)
