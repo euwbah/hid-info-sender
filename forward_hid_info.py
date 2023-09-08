@@ -5,8 +5,10 @@ import psutil
 import GPUtil
 from monitorcontrol import monitorcontrol, InputSource
 import sys
+import os
 import clr
 clr.AddReference('./OpenHardwareMonitorLib')
+
 
 from OpenHardwareMonitor.Hardware import Computer
 
@@ -19,8 +21,11 @@ def log(message, overwrite=False):
     with open(LOG_FILE_PATH, mode) as f:
         f.write(message)
 
+this_file_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(this_file_dir)
+
 log('Starting HID info forwarder for euwbah\'s Sofle RGB keymap', overwrite=True)
-log(f'Opening in pwd: {sys.path[0]}')
+log(f'Opening in pwd: {os.getcwd()}')
 
 # Set these to match OpenHardwareMonitor.Hardware.IHardware.Name
 # (Names can be printed with `print(Computer.Hardware[i].Name)`)
@@ -154,7 +159,7 @@ while True:
             log(f"Could not send packet: {e}")
         time.sleep(1)
     except Exception as e:
-        log(f"Unknown error: {e}")
+        log(f"Error: {type(e).__name__} {e}")
         time.sleep(1)
     finally:
         interface.close()

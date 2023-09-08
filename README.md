@@ -18,19 +18,33 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
 - `py -m pip install psutil` - For CPU usage.
 - `py -m pip install pythonnet` - For injecting the Open Hardware Monitor dll.
 - `py -m pip install monitorcontrol` - For external monitor control
-- Make this python script run as administrator at startup. The method below uses Task Scheduler which lets this python script run silently in the background.
-  - Open Task Scheduler
-  - Create a new task, name it something like "Forward HID Info at startup", or something memorable so that you will know to remove the scheduled task once this program is no longer needed at startup.
-  - In the "General" tab, check "Run whether user is logged on or not", and "Run with highest privileges".
-  - In the "Triggers" tab, create a new trigger, "At startup", and make sure "Enabled" is checked.
-  - In the "Actions" tab, set action to "Start a program"
-    - Program/script: `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
-    - Add arguments: `-ExecutionPolicy Bypass -File "C:\path\to\forward_hid_info.ps1"`. The path must point to the included `forward_hid_info.ps1` script in this repo.
-  - Test that the scheduled task works.
-    - In the right pane, click on "Enable all tasks history"
-    - Select the "Forward HID Info at startup" task, and click "Run" in the right pane.
-    - Check the history tab of this task and make sure the "Action started" task category is logged.
-    - If there's an error, it will show up in the "Last Run Result" column.
+- Run the python script as admin. See [Automated startup](#automated-startup).
+
+## Automated startup
+
+You will need to use a [ridiculous hack](https://stackoverflow.com/a/67300159/4298510) to schedule this python script to run silently in the background upon log in, while giving access to external monitor brightness control.
+
+- Open Task Scheduler
+- Create a new task, name it something like "Forward HID Info at startup", or something memorable and indicative.
+- **General** tab: check **Run only when user is logged on**, and **Run with highest privileges**.
+- **Triggers** tab: create a new trigger, **At startup**, and make sure **Enabled** is checked.
+- **Actions** tab: set action to **Start a program**
+  - Program/script: `C:\Windows\System32\cmd.exe` (or wherever cmd.exe is located. Use `where.exe cmd` command to find out)
+  - Add arguments: `/c start /min "" -ExecutionPolicy Bypass -File "C:\path\to\forward_hid_info.ps1"`.
+  The `\path\to\forward_hid_info.ps1` should point to the `forward_hid_info.ps1` script in this repo. [See explanation here](https://stackoverflow.com/a/67300159/4298510)
+- Test that the scheduled task works.
+  - In the right pane, click on "Enable all tasks history"
+  - Select the "Forward HID Info at startup" task in the list of scheduled tasks
+  - Click "Run" in the right pane.
+  - Check the history tab of this task and make sure the "Action started" task category is logged.
+  - If there's an error, it will show up in the "Last Run Result" column.
+  - Restart computer to check that the task runs upon log in.
+- After testing, "Disable all tasks history".
+
+If there's an easier way to do this, please let me know. Things I have tried and didn't work:
+
+- The "Run even when user is not logged on" trick to run a powershell script in the background does not allow access to external monitor brightness control (security reasons)
+- Using `pyw.exe` instead of `py.exe` flashes a console window every 300ms or so (this has something to do with the **OpenHardwareMonitorLib.dll** injection)
 
 ## Bugs
 
