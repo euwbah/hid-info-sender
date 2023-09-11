@@ -1,6 +1,12 @@
 # HID info sender
 
-For sending device utilization stats to my [QMK keymap for the Sofle RGB keyboard](https://github.com/euwbah/sofle_rgb_qmk/tree/master/keyboards/sofle/keymaps/euwbah).
+Python script to add features to my [QMK keymap for the Sofle RGB keyboard](https://github.com/euwbah/sofle_rgb_qmk/tree/master/keyboards/sofle/keymaps/euwbah).
+
+## Features
+
+- Device utilization stats (CPU, RAM, GPU, Integrated GPU, Temperatures)
+- Date & Time
+- Control External Monitor Brightness & Contrast (via DDC/CI)
 
 Works on Windows only. See [byte format](#byte-format) for the data format to port this to other OSes.
 
