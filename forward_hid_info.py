@@ -3,13 +3,12 @@ from datetime import datetime
 import hid
 import psutil
 import GPUtil
-from monitorcontrol import monitorcontrol, InputSource
+from monitorcontrol import monitorcontrol, InputSource, VCPError
 import sys
 import os
 import threading
 import clr
 clr.AddReference('./OpenHardwareMonitorLib')
-
 
 from OpenHardwareMonitor.Hardware import Computer
 
@@ -72,6 +71,8 @@ def find_keyboard_device():
     return True
 
 # For reading in a separate thread
+# For some weird reason, since the 2023/09 cumulative update, doing this in a daemon thread doesn't work anymore.
+"""
 def handle_hid_read():
     while True:
         if keyboard_device is None:
@@ -79,6 +80,7 @@ def handle_hid_read():
             continue
         try:
             response_packet = keyboard_device.read(32, timeout=None) # blocks until packet is received
+            print('Received packet: ' + str(response_packet))
             if response_packet and response_packet[0] == 0x01:
                 mon_brightness, mon_contrast = response_packet[1], response_packet[2]
 
@@ -94,11 +96,23 @@ def handle_hid_read():
                         ext_mon.set_luminance(mon_brightness)
                         ext_mon.set_contrast(mon_contrast)
         except Exception as e:
-            log(f"Error reading from keyboard device: [{type(e).__name__}] {e}")
+            if 'not connected' in str(e):
+                try:
+                    keyboard_device.close()
+                except Exception as e:
+                    log(f"Error closing keyboard device: [{type(e).__name__}] {e}")
+                keyboard_device = None
+                if not keyboard_not_found_logged:
+                    log(f"Keyboard not found (in handle_hid_read()): {e}")
+                    keyboard_not_found_logged = True
+            else:
+                log(f"Error reading from keyboard device: [{type(e).__name__}] {e}")
+            time.sleep(2)
 
 incoming_handler = threading.Thread(target=handle_hid_read)
 incoming_handler.daemon = True
 incoming_handler.start()
+"""
 
 while True:
     if keyboard_device is None:
@@ -179,6 +193,28 @@ while True:
         # print("Sent packet: " + str(hid_request_packet))
 
         keyboard_not_found_logged = False
+
+        # Read packet & block
+        response_packet = keyboard_device.read(32, timeout=1000) # blocks until packet is received
+        if response_packet and response_packet[0] == 0x01:
+            mon_brightness, mon_contrast = response_packet[1], response_packet[2]
+
+            monitors = monitorcontrol.get_monitors()
+            ext_mon = None
+            try:
+                for m in monitors:
+                    with m:
+                        if m.get_input_source() != InputSource.OFF:
+                            ext_mon = m
+                            break
+                if ext_mon is not None:
+                    with ext_mon:
+                        ext_mon.set_luminance(min(max(mon_brightness, 0), 100))
+                        ext_mon.set_contrast(min(max(mon_contrast, 0), 100))
+            except ValueError as e:
+                log(f'Monitor brightness/contrast value out of range: {mon_brightness}/{mon_contrast}: [{type(e).__name__}] {e}]')
+            except VCPError as e:
+                log(f'Error controlling monitor VCP DDI/CI: [{type(e).__name__}] {e}]')
     except hid.HIDException as e:
         if 'not connected' in str(e):
             try:
@@ -187,7 +223,7 @@ while True:
                 log(f"Error closing keyboard device: [{type(e).__name__}] {e}")
             keyboard_device = None
             if not keyboard_not_found_logged:
-                log(f"Keyboard not found: {e}")
+                log(f"Keyboard not found (in main loop): {e}")
                 keyboard_not_found_logged = True
         else:
             log(f"Could not send packet: [{type(e).__name__}] {e}")
@@ -196,4 +232,4 @@ while True:
         log(f"Error: [{type(e).__name__}] {e}")
         time.sleep(1)
 
-    time.sleep(1)
+    # time.sleep(1) No need to sleep as blocking read is used
