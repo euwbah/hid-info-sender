@@ -20,10 +20,12 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
   - Download the latest zip from [openhardwaremonitor.org](https://openhardwaremonitor.org/downloads/)
   - Run the .exe once with admin rights, make sure it works.
   - Copy the `OpenHardwareMonitorLib.dll` from the install directory to the same directory as this script.
-- `py -m pip install hid` - this python package is a wrapper for HIDAPI.
-- `py -m pip install psutil` - For CPU usage.
-- `py -m pip install pythonnet` - For injecting the Open Hardware Monitor dll.
-- `py -m pip install monitorcontrol` - For external monitor control
+- `py -m pip install hid psutil pythonnet monitorcontrol gputil` or if you use `uv`, `uv pip install --system hid psutil pythonnet monitorcontrol gputil`
+  - `hid`: this python package is a wrapper for HIDAPI.
+  - `psutil` - For CPU usage.
+  - `pythonnet` - For injecting the Open Hardware Monitor dll.
+  - `monitorcontrol` - For external monitor control
+  - `gputil` - For GPU usage.
 - Run the python script as admin. See [Automated startup](#automated-startup).
 
 ## Automated startup
@@ -36,7 +38,7 @@ You will need to use a [ridiculous hack](https://stackoverflow.com/a/67300159/42
 - **Triggers** tab: create a new trigger, **At startup**, and make sure **Enabled** is checked.
 - **Actions** tab: set action to **Start a program**
   - Program/script: `C:\Windows\System32\cmd.exe` (or wherever cmd.exe is located. Use `where.exe cmd` command to find out)
-  - Add arguments: `/c start /min "" -ExecutionPolicy Bypass -File "C:\path\to\forward_hid_info.ps1"`.
+  - Add arguments: `/c start /min "" powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\path\to\forward_hid_info.ps1"`.
   The `\path\to\forward_hid_info.ps1` should point to the `forward_hid_info.ps1` script in this repo. [See explanation here](https://stackoverflow.com/a/67300159/4298510)
 - Test that the scheduled task works.
   - In the right pane, click on "Enable all tasks history"
