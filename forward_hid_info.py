@@ -201,20 +201,22 @@ while True:
 
             monitors = monitorcontrol.get_monitors()
             ext_mon = None
-            try:
-                for m in monitors:
-                    with m:
+
+            for m in monitors:
+                with m:
+                    try:
+                        log(f'Monitor: {m}. VCP capabilities: {m.get_vcp_capabilities()}')
                         if m.get_input_source() != InputSource.OFF:
                             ext_mon = m
                             break
-                if ext_mon is not None:
-                    with ext_mon:
-                        ext_mon.set_luminance(min(max(mon_brightness, 0), 100))
-                        ext_mon.set_contrast(min(max(mon_contrast, 0), 100))
-            except ValueError as e:
-                log(f'Monitor brightness/contrast value out of range: {mon_brightness}/{mon_contrast}: [{type(e).__name__}] {e}]')
-            except VCPError as e:
-                log(f'Error controlling monitor VCP DDI/CI: [{type(e).__name__}] {e}]')
+                    except ValueError as e:
+                        log(f'Monitor brightness/contrast value out of range: {mon_brightness}/{mon_contrast}: [{type(e).__name__}] {e}]')
+                    except VCPError as e:
+                        log(f'Error controlling monitor VCP DDI/CI: [{type(e).__name__}] {e}]')
+            if ext_mon is not None:
+                with ext_mon:
+                    ext_mon.set_luminance(min(max(mon_brightness, 0), 100))
+                    ext_mon.set_contrast(min(max(mon_contrast, 0), 100))
     except hid.HIDException as e:
         if 'not connected' in str(e):
             try:
