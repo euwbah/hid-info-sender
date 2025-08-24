@@ -12,6 +12,8 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
 
 ## Setup
 
+I was using Python 3.13.7 on x64 from python.org.
+
 - Install latest Python for windows. Make sure you have the `py` command/launcher available in your terminal.
 - Install HIDAPI
   - Download the latest compiled dll and lib from [libusb/hidapi releases](https://github.com/libusb/hidapi/releases/)
@@ -20,12 +22,13 @@ Works on Windows only. See [byte format](#byte-format) for the data format to po
   - Download the latest zip from [openhardwaremonitor.org](https://openhardwaremonitor.org/downloads/)
   - Run the .exe once with admin rights, make sure it works.
   - Copy the `OpenHardwareMonitorLib.dll` from the install directory to the same directory as this script.
-- `py -m pip install hid psutil pythonnet monitorcontrol gputil` or if you use `uv`, `uv pip install --system hid psutil pythonnet monitorcontrol gputil`
+- `py -m pip install hid psutil pythonnet monitorcontrol git+https://github.com/MagicalTux/gputil.git@patch-1` or if you use `uv`, `uv pip install --system <packages>`
   - `hid`: this python package is a wrapper for HIDAPI.
   - `psutil` - For CPU usage.
   - `pythonnet` - For injecting the Open Hardware Monitor dll.
   - `monitorcontrol` - For external monitor control
-  - `gputil` - For GPU usage.
+  - `gputil` - For GPU usage stats. Python 3.12 removed `distutils` from stdlib, which broke gputil,
+    and the original maintainer abandoned the project. This fork has a simple fix.
 - Run the python script as admin. See [Automated startup](#automated-startup).
 
 ## Automated startup
